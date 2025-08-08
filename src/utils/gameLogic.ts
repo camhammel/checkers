@@ -48,7 +48,17 @@ export function getPieceAt(
 }
 
 export function isValidPosition(row: number, col: number): boolean {
-	return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+	// outside of board
+	if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) {
+		return false;
+	}
+
+	// light squares are invalid
+	if ((row + col) % 2 === 0) {
+		return false;
+	}
+
+	return true;
 }
 
 export function getValidMoves(pieces: Piece[], piece: Piece): Move[] {
