@@ -1,3 +1,4 @@
+import { useDroppable } from "@dnd-kit/core";
 import { useBoardContext } from "../hooks/useBoardContext";
 import type { Piece as PieceType, Position } from "../types/game";
 import { Piece } from "./Piece";
@@ -29,6 +30,12 @@ export function Square({
             ? "ring-2 ring-inset ring-blue-400 outline-none"
             : "";
 
+    const { isOver, setNodeRef, active } = useDroppable({
+        id: `square-${row}-${col}`,
+        data: { row, col },
+        disabled: !isDarkSquare,
+    });
+
     const handleKeyDown = (event: React.KeyboardEvent) => {
         if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
@@ -38,8 +45,11 @@ export function Square({
 
     if (piece) {
         return (
-            <div className={`${baseClasses} ${colorClasses} ${validMoveClasses} ${selectedClasses}`}>
-                <Piece piece={piece} onClick={onPieceClick} />
+            <div
+                ref={setNodeRef}
+                className={`${baseClasses} ${colorClasses} ${validMoveClasses} ${selectedClasses} ${isOver ? "ring-2 ring-yellow-500" : ""}`}
+            >
+                {isSelectedPiece(piece) && active ? null : <Piece piece={piece} onClick={onPieceClick} />}
             </div>
         );
     }
@@ -47,7 +57,8 @@ export function Square({
     return (
         <button
             type="button"
-            className={`${baseClasses} ${colorClasses} ${validMoveClasses} ${selectedClasses}`}
+            ref={setNodeRef}
+            className={`${baseClasses} ${colorClasses} ${validMoveClasses} ${selectedClasses} ${isOver ? "ring-2 ring-yellow-500" : ""}`}
             onClick={onSquareClick}
             onKeyDown={handleKeyDown}
             aria-label={`Square ${row + 1}, ${col + 1}`}

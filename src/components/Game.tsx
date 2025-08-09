@@ -1,3 +1,5 @@
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, PointerSensor, useSensor } from "@dnd-kit/core";
 import { useEffect, useState } from "react";
 import { BoardProvider } from "../contexts/BoardContext";
 import type { Move, Piece, Player, Position } from "../types/game";
@@ -9,6 +11,7 @@ import {
     makeMove,
 } from "../utils/gameLogic";
 import { Board } from "./Board";
+import { Piece as PieceComponent } from "./Piece";
 
 export function Game() {
     const [pieces, setPieces] = useState<Piece[]>(() => initializeBoard());
@@ -18,6 +21,14 @@ export function Game() {
     const [gameOver, setGameOver] = useState(false);
     const [winner, setWinner] = useState<Player | null>(null);
     const [showValidMoves, setShowValidMoves] = useState(true);
+
+    const [, setDraggingPieceId] = useState<string | null>(null);
+
+    const pointerSensor = useSensor(PointerSensor, {
+        activationConstraint: {
+            distance: 5,
+        },
+    });
 
     // Check for game over conditions
     useEffect(() => {
@@ -47,14 +58,14 @@ export function Game() {
         }
     }, [selectedPiece, pieces, currentPlayer]);
 
-    const handlePieceClick = (piece: Piece) => {
+    const handlePieceClick = (piece: Piece, allowToggle: boolean = true) => {
         if (gameOver) return;
 
         // Only allow selecting pieces of the current player
         if (piece.player !== currentPlayer) return;
 
         // If clicking the same piece, deselect it
-        if (selectedPiece && selectedPiece.id === piece.id) {
+        if (allowToggle && selectedPiece && selectedPiece.id === piece.id) {
             setSelectedPiece(null);
             setValidMoves([]);
         } else {
@@ -107,6 +118,28 @@ export function Game() {
         }
     };
 
+    const handleDragStart = (event: DragStartEvent) => {
+        const pieceId = event.active.id as string;
+        setDraggingPieceId(pieceId);
+        const piece = pieces.find((p) => p.id === pieceId);
+        if (piece) {
+            handlePieceClick(piece, false);
+        }
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        setDraggingPieceId(null);
+        const over = event.over;
+
+        if (!over) return;
+        const data = over.data?.current as
+            | { row?: number; col?: number }
+            | undefined;
+        if (!data || typeof data.row !== "number" || typeof data.col !== "number")
+            return;
+        handleSquareClick({ row: data.row, col: data.col });
+    };
+
     const resetGame = () => {
         setPieces(initializeBoard());
         setCurrentPlayer("red");
@@ -156,10 +189,15 @@ export function Game() {
                 winner={winner}
                 showValidMoves={showValidMoves}
             >
-                <Board
-                    onSquareClick={handleSquareClick}
-                    onPieceClick={handlePieceClick}
-                />
+                <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} sensors={[pointerSensor]}>
+                    <Board
+                        onSquareClick={handleSquareClick}
+                        onPieceClick={handlePieceClick}
+                    />
+                    <DragOverlay dropAnimation={null}>
+                        {selectedPiece && <PieceComponent piece={selectedPiece} onClick={() => { }} activeDrag />}
+                    </DragOverlay>
+                </DndContext>
             </BoardProvider>
 
             {/* Reset Button */}
@@ -178,7 +216,9 @@ export function Game() {
                     onChange={() => setShowValidMoves(!showValidMoves)}
                     className="size-6"
                 />
-                <label htmlFor="showValidMoves" className="text-sm text-gray-800">Highlight Valid Moves</label>
+                <label htmlFor="showValidMoves" className="text-sm text-gray-800">
+                    Highlight Valid Moves
+                </label>
             </div>
         </div>
     );
