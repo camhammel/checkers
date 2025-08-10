@@ -13,8 +13,10 @@ import {
 import { Board } from "./Board";
 import { Piece as PieceComponent } from "./Piece";
 
+const LOCAL_STORAGE_GAME_KEY = "gameState";
+
 export function Game() {
-    const [pieces, setPieces] = useState<Piece[]>(() => initializeBoard());
+    const [pieces, setPieces] = useState<Piece[]>([]);
     const [currentPlayer, setCurrentPlayer] = useState<Player>("red");
     const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
     const [validMoves, setValidMoves] = useState<Move[]>([]);
@@ -30,6 +32,21 @@ export function Game() {
         },
     });
 
+    useEffect(() => {
+        // load game state from local storage
+        const storedGameState = localStorage.getItem(LOCAL_STORAGE_GAME_KEY);
+        if (storedGameState) {
+            const gameState = JSON.parse(storedGameState);
+            setPieces(gameState.pieces);
+            setCurrentPlayer(gameState.currentPlayer);
+            setSelectedPiece(gameState.selectedPiece);
+        }
+
+        return () => {
+            localStorage.clear();
+        }
+    }, []);
+
     // Check for game over conditions
     useEffect(() => {
         const { gameOver: isOver, winner: gameWinner } = isGameOver(
@@ -38,6 +55,10 @@ export function Game() {
         );
         setGameOver(isOver);
         setWinner(gameWinner);
+        if (isOver) {
+            // clear local storage
+            localStorage.clear();
+        }
     }, [pieces, currentPlayer]);
 
     // Get valid moves for selected piece
@@ -56,6 +77,13 @@ export function Game() {
         } else {
             setValidMoves([]);
         }
+
+        // save game state to local storage
+        localStorage.setItem(LOCAL_STORAGE_GAME_KEY, JSON.stringify({
+            pieces,
+            currentPlayer,
+            selectedPiece,
+        }));
     }, [selectedPiece, pieces, currentPlayer]);
 
     const handlePieceClick = (piece: Piece, allowToggle: boolean = true) => {
