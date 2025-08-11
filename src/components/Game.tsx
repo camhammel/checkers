@@ -70,7 +70,6 @@ export function Game() {
         if (isOver) {
             // clear local storage
             localStorage.clear();
-            setGameMode(null);
         }
     }, [pieces, currentPlayer]);
 
@@ -199,7 +198,6 @@ export function Game() {
     };
 
     const startNewGame = (mode: "human" | "computer") => {
-        setGameMode(mode);
         setPieces(initializeBoard());
         setCurrentPlayer("red");
         setSelectedPiece(null);
@@ -207,6 +205,7 @@ export function Game() {
         setGameOver(false);
         setWinner(null);
         setShowGameModeModal(false);
+        setGameMode(mode);
     };
 
     const executeComputerMoveWithCaptures = useCallback((currentPieces: Piece[], player: Player) => {
