@@ -27,8 +27,8 @@ Drag-and-drop implemented via dnd-kit, a library that I was familiar with via my
 
 Icons used from [hugeicons](hugeicons.com) (including favicon).
 
-With more time, would have prioritized E2E tests and a cleaner way to sync local storage state,
-e.g. via something similar to [useLocalStorage](https://vueuse.org/core/useLocalStorage/).
+With more time, would have prioritized a more refined initial state, E2E tests, and a cleaner way to sync local storage
+state, e.g. via something similar to [useLocalStorage](https://vueuse.org/core/useLocalStorage/).
 Admittedly, colour themes would have likely came after!
 
 ### Thank you for the opportunity 🙏
