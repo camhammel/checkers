@@ -34,7 +34,7 @@ export function Piece({ piece, onClick, activeDrag }: PieceProps) {
     };
 
     const baseClasses =
-        "md:size-12 sm:size-9 size-6 rounded-full border-2 border-gray-800 flex items-center justify-center transition-all duration-200 cursor-pointer";
+        "md:size-12 sm:size-10 size-8 rounded-full border-2 border-gray-800 flex items-center justify-center transition-all duration-200 cursor-pointer";
     const colorClasses = player === "red" ? "bg-red-600" : "bg-gray-800";
     const selectedClasses = isSelectedPiece(piece)
         ? "ring-4 ring-yellow-400 ring-opacity-75 shadow-lg"
@@ -73,7 +73,7 @@ export function Piece({ piece, onClick, activeDrag }: PieceProps) {
             }}
         >
             {type === "king" && (
-                <Icon icon={Crown03Icon} className="text-white" size={20} />
+                <Icon icon={Crown03Icon} className="text-white size-3 sm:size-5" size={20} />
             )}
         </button>
     );

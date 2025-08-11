@@ -275,7 +275,7 @@ export function Game() {
     ]);
 
     return (
-        <div className="flex flex-col items-center gap-6 p-8">
+        <div className="flex flex-col items-center gap-6 p-2 sm:p-8">
             <h1 className="text-4xl font-bold text-gray-800">Checkers</h1>
 
             {/* Game Status */}

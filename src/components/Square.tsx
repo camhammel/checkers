@@ -20,7 +20,7 @@ export function Square({
     const { row, col } = position;
     const isDarkSquare = (row + col) % 2 === 1;
 
-    const baseClasses = "md:size-16 sm:size-12 size-8 flex items-center justify-center relative";
+    const baseClasses = "md:size-16 sm:size-12 size-10 flex items-center justify-center relative";
     const colorClasses = isDarkSquare ? "bg-gray-500" : "bg-gray-300";
     const validMoveClasses = isValidMoveTarget(row, col)
         ? "ring-2 ring-green-400 ring-inset ring-opacity-75 outline-none"
