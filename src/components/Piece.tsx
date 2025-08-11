@@ -1,4 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
+import { Crown03Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon as Icon } from "@hugeicons/react";
 import { useBoardContext } from "../hooks/useBoardContext";
 import type { Piece as PieceType } from "../types/game";
 
@@ -18,12 +20,11 @@ export function Piece({ piece, onClick, activeDrag }: PieceProps) {
     } = useBoardContext();
     const { player, type, id } = piece;
 
-    const { attributes, listeners, setNodeRef, transform } =
-        useDraggable({
-            id,
-            data: { pieceId: id },
-            disabled: gameOver || player !== currentPlayer,
-        });
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({
+        id,
+        data: { pieceId: id },
+        disabled: gameOver || player !== currentPlayer,
+    });
 
     const handleKeyDown = (event: React.KeyboardEvent) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -71,7 +72,9 @@ export function Piece({ piece, onClick, activeDrag }: PieceProps) {
                 willChange: activeDrag ? "transform" : undefined,
             }}
         >
-            {type === "king" && <div className="text-white font-bold text-lg">♔</div>}
+            {type === "king" && (
+                <Icon icon={Crown03Icon} className="text-white" size={20} />
+            )}
         </button>
     );
 }
