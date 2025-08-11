@@ -209,6 +209,40 @@ export function Game() {
         setShowGameModeModal(false);
     };
 
+    const executeComputerMoveWithCaptures = useCallback((currentPieces: Piece[], player: Player) => {
+        let pieces = [...currentPieces];
+        let hasMoreCaptures = true;
+        let captureCount = 0;
+        const maxCaptures = 10; // Prevent infinite loops
+
+        // Execute moves until no more captures are available
+        while (hasMoreCaptures && captureCount < maxCaptures) {
+            const computerMove = getComputerMove(pieces, player);
+
+            if (!computerMove) {
+                break;
+            }
+
+            const { newPieces, hasAdditionalCaptures } = executeComputerMove(pieces, computerMove);
+            pieces = newPieces;
+
+            if (!hasAdditionalCaptures) {
+                hasMoreCaptures = false;
+            }
+
+            captureCount++;
+        }
+
+        // Update the game state with the final board
+        setPieces(pieces);
+
+        // Switch to human player
+        setCurrentPlayer("red");
+        setSelectedPiece(null);
+        setValidMoves([]);
+        setIsComputerThinking(false);
+    }, []);
+
     const handleComputerMove = useCallback(() => {
         if (gameMode !== "computer" || currentPlayer !== "black" || gameOver)
             return;
@@ -217,42 +251,10 @@ export function Game() {
 
         // Add a small delay to make the computer move visible
         setTimeout(() => {
-            const computerMove = getComputerMove(pieces, currentPlayer);
-
-            if (computerMove) {
-                const { newPieces, hasAdditionalCaptures, additionalCaptures } =
-                    executeComputerMove(pieces, computerMove);
-                setPieces(newPieces);
-
-                if (hasAdditionalCaptures) {
-                    // Computer has additional captures, continue its turn
-                    setValidMoves(additionalCaptures);
-                    // Find the moved piece and select it for additional captures
-                    const movedPiece = newPieces.find(
-                        (piece) =>
-                            piece.row === computerMove.to.row &&
-                            piece.col === computerMove.to.col,
-                    );
-                    if (movedPiece) {
-                        setSelectedPiece(movedPiece);
-                        // Continue computer's turn with additional captures
-                        handleComputerMove();
-                    }
-                } else {
-                    // Switch to human player
-                    setCurrentPlayer("red");
-                    setSelectedPiece(null);
-                    setValidMoves([]);
-                }
-            } else {
-                // No valid moves for computer, game over
-                setGameOver(true);
-                setWinner("red");
-            }
-
-            setIsComputerThinking(false);
+            // Execute computer move with potential sequential captures
+            executeComputerMoveWithCaptures(pieces, currentPlayer);
         }, 500);
-    }, [gameMode, currentPlayer, gameOver, pieces]);
+    }, [gameMode, currentPlayer, gameOver, pieces, executeComputerMoveWithCaptures]);
 
     // Handle computer moves when it's computer's turn
     useEffect(() => {
