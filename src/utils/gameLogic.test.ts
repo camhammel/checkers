@@ -1,5 +1,8 @@
 import { expect, test } from "vitest";
+import type { Move, Piece } from "../types/game";
 import {
+	executeComputerMove,
+	getComputerMove,
 	getCurrentPlayerMoves,
 	getPieceAt,
 	getValidMoves,
@@ -196,4 +199,39 @@ test("isGameOver returns false if game is not over", () => {
 		gameOver: false,
 		winner: null,
 	});
+});
+
+test("getComputerMove returns a valid move when moves are available", () => {
+	const pieces = initializeBoard();
+	const move = getComputerMove(pieces, "black");
+
+	expect(move).toBeDefined();
+	if (move) {
+		expect(move.from).toBeDefined();
+		expect(move.to).toBeDefined();
+		expect(move.captures).toBeDefined();
+	}
+});
+
+test("getComputerMove returns null when no moves are available", () => {
+	const pieces: Piece[] = []; // Empty board
+	const move = getComputerMove(pieces, "black");
+
+	expect(move).toBeNull();
+});
+
+test("executeComputerMove correctly executes a move and checks for additional captures", () => {
+	const pieces = initializeBoard();
+	const move: Move = {
+		from: { row: 5, col: 0 },
+		to: { row: 4, col: 1 },
+		captures: [],
+	};
+
+	const result = executeComputerMove(pieces, move);
+
+	expect(result.newPieces).toBeDefined();
+	expect(result.hasAdditionalCaptures).toBeDefined();
+	expect(result.additionalCaptures).toBeDefined();
+	expect(result.newPieces.length).toBe(pieces.length); // Same number of pieces
 });

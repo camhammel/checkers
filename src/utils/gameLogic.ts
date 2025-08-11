@@ -237,3 +237,52 @@ export function isGameOver(
 
 	return { gameOver: false, winner: null };
 }
+
+export function getComputerMove(
+	pieces: Piece[],
+	currentPlayer: Player,
+): Move | null {
+	const availableMoves = getCurrentPlayerMoves(pieces, currentPlayer);
+
+	if (availableMoves.length === 0) {
+		return null;
+	}
+
+	// Randomly select a move from available moves
+	const randomIndex = Math.floor(Math.random() * availableMoves.length);
+	return availableMoves[randomIndex];
+}
+
+export function executeComputerMove(
+	pieces: Piece[],
+	move: Move,
+): {
+	newPieces: Piece[];
+	hasAdditionalCaptures: boolean;
+	additionalCaptures: Move[];
+} {
+	const newPieces = makeMove(pieces, move);
+
+	if (move.captures.length === 0) {
+		return { newPieces, hasAdditionalCaptures: false, additionalCaptures: [] };
+	}
+
+	// If the previous move was a capture, check if there are additional captures available for the piece
+	const movedPiece = newPieces.find(
+		(piece) => piece.row === move.to.row && piece.col === move.to.col,
+	);
+
+	if (!movedPiece) {
+		return { newPieces, hasAdditionalCaptures: false, additionalCaptures: [] };
+	}
+
+	const additionalCaptures = getValidMoves(newPieces, movedPiece).filter(
+		(move) => move.captures.length > 0,
+	);
+
+	return {
+		newPieces,
+		hasAdditionalCaptures: additionalCaptures.length > 0,
+		additionalCaptures,
+	};
+}

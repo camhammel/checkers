@@ -1,9 +1,16 @@
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-import { DndContext, DragOverlay, PointerSensor, useSensor } from "@dnd-kit/core";
-import { useEffect, useState } from "react";
+import {
+    DndContext,
+    DragOverlay,
+    PointerSensor,
+    useSensor,
+} from "@dnd-kit/core";
+import { useCallback, useEffect, useState } from "react";
 import { BoardProvider } from "../contexts/BoardContext";
 import type { Move, Piece, Player, Position } from "../types/game";
 import {
+    executeComputerMove,
+    getComputerMove,
     getCurrentPlayerMoves,
     getValidMoves,
     initializeBoard,
@@ -11,6 +18,7 @@ import {
     makeMove,
 } from "../utils/gameLogic";
 import { Board } from "./Board";
+import { GameModeModal } from "./GameModeModal";
 import { Piece as PieceComponent } from "./Piece";
 
 const LOCAL_STORAGE_GAME_KEY = "gameState";
@@ -23,6 +31,9 @@ export function Game() {
     const [gameOver, setGameOver] = useState(false);
     const [winner, setWinner] = useState<Player | null>(null);
     const [showValidMoves, setShowValidMoves] = useState(true);
+    const [gameMode, setGameMode] = useState<"human" | "computer" | null>(null);
+    const [showGameModeModal, setShowGameModeModal] = useState(false);
+    const [isComputerThinking, setIsComputerThinking] = useState(false);
 
     const [, setDraggingPieceId] = useState<string | null>(null);
 
@@ -40,11 +51,12 @@ export function Game() {
             setPieces(gameState.pieces);
             setCurrentPlayer(gameState.currentPlayer);
             setSelectedPiece(gameState.selectedPiece);
+            setGameMode(gameState.gameMode || "human");
         }
 
         return () => {
             localStorage.clear();
-        }
+        };
     }, []);
 
     // Check for game over conditions
@@ -58,6 +70,7 @@ export function Game() {
         if (isOver) {
             // clear local storage
             localStorage.clear();
+            setGameMode(null);
         }
     }, [pieces, currentPlayer]);
 
@@ -79,15 +92,22 @@ export function Game() {
         }
 
         // save game state to local storage
-        localStorage.setItem(LOCAL_STORAGE_GAME_KEY, JSON.stringify({
-            pieces,
-            currentPlayer,
-            selectedPiece,
-        }));
-    }, [selectedPiece, pieces, currentPlayer]);
+        localStorage.setItem(
+            LOCAL_STORAGE_GAME_KEY,
+            JSON.stringify({
+                pieces,
+                currentPlayer,
+                selectedPiece,
+                gameMode,
+            }),
+        );
+    }, [selectedPiece, pieces, currentPlayer, gameMode]);
 
     const handlePieceClick = (piece: Piece, allowToggle: boolean = true) => {
         if (gameOver) return;
+
+        // Prevent human moves during computer's turn
+        if (gameMode === "computer" && currentPlayer === "black") return;
 
         // Only allow selecting pieces of the current player
         if (piece.player !== currentPlayer) return;
@@ -103,6 +123,9 @@ export function Game() {
 
     const handleSquareClick = (position: Position) => {
         if (gameOver || !selectedPiece) return;
+
+        // Prevent human moves during computer's turn
+        if (gameMode === "computer" && currentPlayer === "black") return;
 
         // Check if this is a valid move for the selected piece
         const move = validMoves.find(
@@ -147,6 +170,9 @@ export function Game() {
     };
 
     const handleDragStart = (event: DragStartEvent) => {
+        // Prevent dragging during computer's turn
+        if (gameMode === "computer" && currentPlayer === "black") return;
+
         const pieceId = event.active.id as string;
         setDraggingPieceId(pieceId);
         const piece = pieces.find((p) => p.id === pieceId);
@@ -169,13 +195,82 @@ export function Game() {
     };
 
     const resetGame = () => {
+        setShowGameModeModal(true);
+    };
+
+    const startNewGame = (mode: "human" | "computer") => {
+        setGameMode(mode);
         setPieces(initializeBoard());
         setCurrentPlayer("red");
         setSelectedPiece(null);
         setValidMoves([]);
         setGameOver(false);
         setWinner(null);
+        setShowGameModeModal(false);
     };
+
+    const handleComputerMove = useCallback(() => {
+        if (gameMode !== "computer" || currentPlayer !== "black" || gameOver)
+            return;
+
+        setIsComputerThinking(true);
+
+        // Add a small delay to make the computer move visible
+        setTimeout(() => {
+            const computerMove = getComputerMove(pieces, currentPlayer);
+
+            if (computerMove) {
+                const { newPieces, hasAdditionalCaptures, additionalCaptures } =
+                    executeComputerMove(pieces, computerMove);
+                setPieces(newPieces);
+
+                if (hasAdditionalCaptures) {
+                    // Computer has additional captures, continue its turn
+                    setValidMoves(additionalCaptures);
+                    // Find the moved piece and select it for additional captures
+                    const movedPiece = newPieces.find(
+                        (piece) =>
+                            piece.row === computerMove.to.row &&
+                            piece.col === computerMove.to.col,
+                    );
+                    if (movedPiece) {
+                        setSelectedPiece(movedPiece);
+                        // Continue computer's turn with additional captures
+                        handleComputerMove();
+                    }
+                } else {
+                    // Switch to human player
+                    setCurrentPlayer("red");
+                    setSelectedPiece(null);
+                    setValidMoves([]);
+                }
+            } else {
+                // No valid moves for computer, game over
+                setGameOver(true);
+                setWinner("red");
+            }
+
+            setIsComputerThinking(false);
+        }, 500);
+    }, [gameMode, currentPlayer, gameOver, pieces]);
+
+    // Handle computer moves when it's computer's turn
+    useEffect(() => {
+        if (
+            gameMode === "computer" &&
+            currentPlayer === "black" &&
+            !gameOver &&
+            !isComputerThinking
+        ) {
+            handleComputerMove();
+        }
+    }, [
+        currentPlayer,
+        gameMode,
+        gameOver,
+        isComputerThinking,
+        handleComputerMove,
+    ]);
 
     return (
         <div className="flex flex-col items-center gap-6 p-8">
@@ -217,13 +312,23 @@ export function Game() {
                 winner={winner}
                 showValidMoves={showValidMoves}
             >
-                <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} sensors={[pointerSensor]}>
+                <DndContext
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    sensors={[pointerSensor]}
+                >
                     <Board
                         onSquareClick={handleSquareClick}
                         onPieceClick={handlePieceClick}
                     />
                     <DragOverlay dropAnimation={null}>
-                        {selectedPiece && <PieceComponent piece={selectedPiece} onClick={() => { }} activeDrag />}
+                        {selectedPiece && (
+                            <PieceComponent
+                                piece={selectedPiece}
+                                onClick={() => { }}
+                                activeDrag
+                            />
+                        )}
                     </DragOverlay>
                 </DndContext>
             </BoardProvider>
@@ -248,6 +353,13 @@ export function Game() {
                     Highlight Valid Moves
                 </label>
             </div>
+
+            {/* Game Mode Modal */}
+            <GameModeModal
+                isOpen={showGameModeModal}
+                onClose={() => setShowGameModeModal(false)}
+                onGameModeSelect={startNewGame}
+            />
         </div>
     );
 }
